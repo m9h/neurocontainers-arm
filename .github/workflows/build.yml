@@ -1,0 +1,83 @@
+name: build-and-push
+
+# Triggered on tag push matching `<image>-v*`, e.g. `t1prep-arm-v0.3.3-arm.1`.
+# Manual dispatch also supported.
+on:
+  push:
+    tags:
+      - "t1prep-arm-v*"
+      - "fastsurfer-arm-v*"
+      - "medarc-arm-v*"
+  workflow_dispatch:
+    inputs:
+      image:
+        description: "which image (t1prep-arm | fastsurfer-arm | medarc-arm)"
+        required: true
+        type: choice
+        options: [t1prep-arm, fastsurfer-arm, medarc-arm]
+      tag:
+        description: "tag suffix (e.g. v0.3.3-arm.1)"
+        required: true
+        type: string
+
+jobs:
+  build:
+    # Self-hosted arm64 runner is required for these images: the pulls of
+    # nvcr.io/nvidia/pytorch:*-py3 are 8-15 GB each and run on Grace CPUs.
+    # GitHub-hosted arm64 runners (as of 2026) are too small for this.
+    runs-on: [self-hosted, linux, arm64]
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive image + tag
+        id: meta
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "image=${{ inputs.image }}" >> "$GITHUB_OUTPUT"
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            # tag format: <image>-<tag>, e.g. t1prep-arm-v0.3.3-arm.1
+            ref_name="${GITHUB_REF_NAME}"
+            image="${ref_name%%-v*}"
+            tag="${ref_name#${image}-}"
+            echo "image=$image" >> "$GITHUB_OUTPUT"
+            echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build
+        run: |
+          cd Dockerfiles/${{ steps.meta.outputs.image }}
+          docker build --platform=linux/arm64 \
+            -t "ghcr.io/${{ github.repository_owner }}/${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}" \
+            -t "ghcr.io/${{ github.repository_owner }}/${{ steps.meta.outputs.image }}:latest" \
+            .
+
+      - name: Push
+        run: |
+          docker push "ghcr.io/${{ github.repository_owner }}/${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}"
+          docker push "ghcr.io/${{ github.repository_owner }}/${{ steps.meta.outputs.image }}:latest"
+
+      - name: Record digest
+        run: |
+          digest=$(docker image inspect \
+            "ghcr.io/${{ github.repository_owner }}/${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}" \
+            --format='{{.Id}}')
+          echo "${{ steps.meta.outputs.image }} ${{ steps.meta.outputs.tag }} $digest" \
+            >> Dockerfiles/${{ steps.meta.outputs.image }}/DIGESTS.md
+
+      - name: Commit digest update
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: record digest for ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}"
+          file_pattern: Dockerfiles/${{ steps.meta.outputs.image }}/DIGESTS.md
