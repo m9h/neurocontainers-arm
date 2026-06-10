@@ -12,10 +12,18 @@ Published on [GitHub Container Registry](https://github.com/orgs/m9h/packages):
 | [`ghcr.io/m9h/t1prep-arm`](https://github.com/m9h/neurocontainers-arm/pkgs/container/t1prep-arm) | `<t1prep-version>-arm.<patch-rev>` (e.g. `v0.3.3-arm.1`) | Apache-2.0 |
 | [`ghcr.io/m9h/fastsurfer-arm`](https://github.com/m9h/neurocontainers-arm/pkgs/container/fastsurfer-arm) | `<fastsurfer-commit>-arm.<patch-rev>` | Apache-2.0 wrapper, FreeSurfer-NC for binaries the user pulls at runtime |
 | [`ghcr.io/m9h/medarc-arm`](https://github.com/m9h/neurocontainers-arm/pkgs/container/medarc-arm) | `<medarc-commit>-arm.<patch-rev>` | Apache-2.0 pipeline, FreeSurfer-NC for included FS binaries |
+| [`ghcr.io/m9h/neurostorm-arm`](https://github.com/m9h/neurocontainers-arm/pkgs/container/neurostorm-arm) | `<ngc-base>-arm.<patch-rev>` (e.g. `26.04-arm.1`) | Apache-2.0 (NeuroSTORM); causal-conv1d BSD-3 |
 
-All images FROM `nvcr.io/nvidia/pytorch:{24.12,26.03}-py3` so the
+All images FROM `nvcr.io/nvidia/pytorch:{24.12,26.03,26.04}-py3` so the
 PyTorch / CUDA / cuDNN stack is NVIDIA-optimised for Grace-Blackwell
-(`sm_120`).
+(`sm_120`/`sm_121`).
+
+`neurostorm-arm` is a **turnkey container for MedARC's NeuroSTORM fMRI foundation model**
+(Swin4D + Mamba) on GB10 — it bakes in the otherwise-painful mamba stack (`causal-conv1d`
+built from source against the NGC torch, `mamba-ssm`) plus NeuroSTORM and the
+monai/`torch_tensorrt` import fix, so `from neurostorm.models...` + a Mamba forward work out
+of the box (verified on DGX Spark). See [`mamba-ssm-gb10/`](mamba-ssm-gb10/) for the standalone
+mamba-stack notes and [`Dockerfiles/neurostorm/`](Dockerfiles/neurostorm/).
 
 ## Licenses
 
