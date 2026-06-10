@@ -48,6 +48,16 @@ docker run --gpus all --rm \
         --seg_only --parallel --fs_license /opt/FastSurfer/license.txt
 ```
 
+## Prebuilt Python wheels / package guidance
+
+Beyond container images, this repo gap-fills aarch64 Python packages that are awkward on GB10:
+
+- [`mamba-ssm-gb10/`](mamba-ssm-gb10/) — the **Mamba** stack (`mamba-ssm` + `causal-conv1d`)
+  on GB10. **conda-forge already works on GB10** (`cuda-version=12.9`, verified); for the **NGC
+  PyTorch container** (torch 2.12 / CUDA 13), a prebuilt `causal-conv1d` wheel + rebuild script
+  are provided (conda-forge's torch-2.10 ABI won't load there). Needed by mamba-based fMRI FMs
+  like NeuroSTORM. Wheel on the [releases page](https://github.com/m9h/neurocontainers-arm/releases).
+
 ## Why arm64
 
 - **NVIDIA Grace (DGX Spark)** is arm64 + Blackwell; upstream
