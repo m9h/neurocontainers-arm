@@ -14,6 +14,7 @@
 FROM nvcr.io/nvidia/pytorch:26.04-py3
 
 ARG NEUROSTORM_COMMIT=7fa3b96c8021735f1d84a81d0367b2568a2dc6e4
+ARG SWIFT_COMMIT=324b003061e484ebd1a247967b520019fda911fc
 ENV DEBIAN_FRONTEND=noninteractive \
     TORCH_CUDA_ARCH_LIST="12.1" \
     TEMPLATEFLOW_HOME=/opt/templateflow \
@@ -31,6 +32,11 @@ RUN pip install --no-cache-dir --ignore-requires-python --no-deps \
  && pip install --no-cache-dir \
         pytorch-lightning monai templateflow nilearn nibabel frozendict einops scipy
 
+# SwiFT (contrastive Swin4D, the other whole-brain volume-4D fMRI FM) alongside NeuroSTORM.
+# Pure-Python (no mamba / no CUDA compile); shares the same monai/lightning/volume stack.
+RUN pip install --no-cache-dir --ignore-requires-python --no-deps \
+        "swiftfmri @ git+https://github.com/MedARC-AI/SwiFT.git@${SWIFT_COMMIT}"
+
 # monai's networks.trt_compiler does an optional_import of torch_tensorrt whose __init__
 # hangs in this container; removing it makes the optional-import fail fast and clean.
 RUN pip uninstall -y torch_tensorrt torch-tensorrt 2>/dev/null || true
@@ -43,11 +49,12 @@ RUN python3 - <<'PY'
 import torch
 from mamba_ssm import Mamba, Mamba2
 from neurostorm.models.lightning_model import LightningModel
-print("OK: mamba-ssm + neurostorm import; torch", torch.__version__)
+from swiftfmri.pl_classifier import LitClassifier
+print("OK: mamba-ssm + neurostorm + swiftfmri import; torch", torch.__version__)
 PY
 
 LABEL org.opencontainers.image.title="neurostorm-arm" \
-      org.opencontainers.image.description="MedARC NeuroSTORM fMRI FM (Swin4D+Mamba) on aarch64/GB10, NGC pytorch 26.04 / CUDA 13" \
+      org.opencontainers.image.description="MedARC volume-4D fMRI FMs (NeuroSTORM Swin4D+Mamba, SwiFT) on aarch64/GB10, NGC pytorch 26.04 / CUDA 13" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.source="https://github.com/m9h/neurocontainers-arm"
 

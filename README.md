@@ -18,12 +18,13 @@ All images FROM `nvcr.io/nvidia/pytorch:{24.12,26.03,26.04}-py3` so the
 PyTorch / CUDA / cuDNN stack is NVIDIA-optimised for Grace-Blackwell
 (`sm_120`/`sm_121`).
 
-`neurostorm-arm` is a **turnkey container for MedARC's NeuroSTORM fMRI foundation model**
-(Swin4D + Mamba) on GB10 — it bakes in the otherwise-painful mamba stack (`causal-conv1d`
-built from source against the NGC torch, `mamba-ssm`) plus NeuroSTORM and the
-monai/`torch_tensorrt` import fix, so `from neurostorm.models...` + a Mamba forward work out
-of the box (verified on DGX Spark). See [`mamba-ssm-gb10/`](mamba-ssm-gb10/) for the standalone
-mamba-stack notes and [`Dockerfiles/neurostorm/`](Dockerfiles/neurostorm/).
+`neurostorm-arm` is a **turnkey container for MedARC's whole-brain volume-4D fMRI foundation
+models on GB10** — **NeuroSTORM** (Swin4D + Mamba) and **SwiFT** (contrastive Swin4D). It bakes
+in the otherwise-painful mamba stack (`causal-conv1d` built from source against the NGC torch,
+`mamba-ssm`) plus both models and the monai/`torch_tensorrt` import fix, so
+`from neurostorm.models...`, `from swiftfmri.pl_classifier...`, and a Mamba forward all work out
+of the box on GB10 (verified on DGX Spark, tag `26.04-arm.2`). See [`mamba-ssm-gb10/`](mamba-ssm-gb10/)
+for the standalone mamba-stack notes and [`Dockerfiles/neurostorm/`](Dockerfiles/neurostorm/).
 
 ## Licenses
 
